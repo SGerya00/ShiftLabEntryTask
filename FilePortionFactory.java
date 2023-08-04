@@ -5,18 +5,12 @@ public class FilePortionFactory {
         typeToSuit = type;
     }
 
-    public FilePortion createFilePortion(boolean sortAsc) {
+    public FilePortion createFilePortion(String filename, boolean sortAsc) {
         FilePortion forReturn;
         if (typeToSuit == Integer.class) {
-            forReturn = new FilePortionInt();
+            forReturn = new FilePortionInt(filename, (sortAsc ? (1) : (-1)));
         } else {
-            forReturn = new FilePortionString();
-        }
-
-        if (sortAsc) {
-            forReturn.setSortingModifier(1);
-        } else {
-            forReturn.setSortingModifier(-1);
+            forReturn = new FilePortionString(filename, (sortAsc ? (1) : (-1)));
         }
 
         return forReturn;

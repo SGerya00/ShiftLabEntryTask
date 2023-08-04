@@ -65,6 +65,80 @@ public class Main {
         return new ExecutionParameters(sortAscending, datatype, outputFileName, inputFileNames);
     }
 
+    //returns 0 if a line was successfully read
+    //returns 1 if IOException happened with input file or EOF reached -> ignore file from now on
+    private static int readOneLineFromInputFile(FilePortion fp) {
+        try {
+            fp.openFile();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            return 1;
+        }
+
+        try {
+            fp.moveToPosition();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            try {
+                fp.closeFile();
+            } catch (IOException ex) {
+                System.err.println(ex.getMessage());
+            }
+            return 1;
+        }
+
+        int res = 0;
+        while(true) {
+            try {
+                res = fp.readLineFromFile();
+            } catch (RuntimeException e) {
+                System.err.println(e.getMessage());
+                continue;
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+                try {
+                    fp.closeFile();
+                } catch (IOException ee) {
+                    System.err.println(ee.getMessage());
+                }
+                return 1;
+            }
+            break;
+        }
+        if (1 == res) {
+            System.out.println("EOF reached in \""
+                    + fp.getFilename()
+                    + "\", file will now be ignored");
+            try {
+                fp.closeFile();
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
+            return 1;
+        }
+
+        try {
+            fp.rememberPosition();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            try {
+                fp.closeFile();
+            } catch (IOException ee) {
+                System.err.println(ee.getMessage());
+            }
+            return 1;
+        }
+
+        try {
+            fp.closeFile();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            return 1;
+        }
+
+        return 0;
+    }
+
     public static void main(String[] args) {
         ExecutionParameters ep;
         try {
@@ -76,6 +150,7 @@ public class Main {
 
         System.out.println("all good in hood");
 
+        //--------------------------------------------------------------------------------------------------------------
         OutputWriter ow = new OutputWriter(ep.getOutputFileName());
         try {
             ow.openFileForWriting();
@@ -85,36 +160,15 @@ public class Main {
         }
 
         FilePortionFactory fpf = new FilePortionFactory(ep.getDatatype());
-        FilePortion fp1 = fpf.createFilePortion(ep.isSortAscending());
-        fp1.setFilename(ep.getInputFileNames().get(0));
-        try {
-            fp1.openFile();
-        } catch (FileNotFoundException e) {
-            System.err.println(e.getMessage());
-            try {
-                ow.closeFile();
-            } catch (IOException ee) {
-                System.err.println(ee.getMessage());
-            }
-            return;
-        }
+        FilePortion fp = fpf.createFilePortion(ep.getInputFileNames().get(0), ep.isSortAscending());
 
         while(true) {
-            int res = 0;
-            try {
-                res = fp1.readLineFromFile();
-            } catch (RuntimeException e) {
-                System.err.println(e.getMessage());
-                continue;
-            } catch (IOException e) {
-                System.err.println(e.getMessage());
-                break;
-            }
-            if (1 == res) {
-                System.out.println("EOF reached, file will now be ignored");
-                break;
+            int res = readOneLineFromInputFile(fp);
+            if (0 == res) {
+                fp.writeToOutputFile(ow);
             } else {
-                fp1.writeToOutputFile(ow);
+                System.out.println("File deleted from array");
+                break;
             }
         }
 
@@ -123,11 +177,7 @@ public class Main {
         } catch (IOException ee) {
             System.err.println(ee.getMessage());
         }
-        try {
-            fp1.closeFile();
-        } catch (IOException ee) {
-            System.err.println(ee.getMessage());
-        }
+        //--------------------------------------------------------------------------------------------------------------
 
         System.out.println("Execution complete!");
     }

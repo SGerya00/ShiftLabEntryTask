@@ -1,10 +1,13 @@
-import java.io.BufferedReader;
 import java.io.IOException;
 
 public class FilePortionString extends FilePortion {
     private String lineData = null;
 
     private String previousLineData = null;
+
+    public FilePortionString(String filename, int sortingModifier) {
+        super(filename, sortingModifier);
+    }
 
     public String getLineData() {
         return lineData;
@@ -37,7 +40,17 @@ public class FilePortionString extends FilePortion {
     @Override
     public int readLineFromFile() throws RuntimeException, IOException {
         currentLineNum += 1;
-        String currentLine = br.readLine();
+        String currentLine;
+        try {
+            currentLine = raf.readLine(); //IOException
+        } catch (IOException e) {
+            String exceptionMessage = "In file \""
+                    + filename
+                    + "\" in line "
+                    + currentLineNum
+                    + " readLine function could not be performed, file will be ignored";
+            throw new IOException(exceptionMessage);
+        }
         if (null == currentLine) {
             return 1;
         }

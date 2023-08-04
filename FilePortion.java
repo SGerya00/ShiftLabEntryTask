@@ -1,35 +1,29 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 
 public abstract class FilePortion {
-    protected String filename;
+    protected final String filename;
 
     //is used as a multiplier, 1 for ascending sort, -1 for descending
-    protected int sortingModifier;
+    protected final int sortingModifier;
 
     //useful for error messaging
     protected int currentLineNum;
 
-    protected FileReader fr = null;
+    protected RandomAccessFile raf = null;
 
-    protected BufferedReader br = null;
+    protected long currentFilePointer = 0;
+
+    protected FilePortion(String filename, int sortingModifier) {
+        this.filename = filename;
+        this.sortingModifier = sortingModifier;
+    }
 
     public String getFilename() {
         return filename;
     }
 
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
-
     public int getSortingModifier() {
         return sortingModifier;
-    }
-
-    public void setSortingModifier(int sortingModifier) {
-        this.sortingModifier = sortingModifier;
     }
 
     public int getCurrentLineNum() {
@@ -42,14 +36,61 @@ public abstract class FilePortion {
 
     abstract public int compareDataTo(FilePortion that);
 
-    public void openFile() throws FileNotFoundException {
-        fr = new FileReader(filename);
-        br = new BufferedReader(fr);
+    public void openFile() throws Exception {
+        //will not throw IllegalArgumentException as mode is always "r" <- one of allowed
+        try {
+            raf = new RandomAccessFile(filename, "r");
+        } catch (FileNotFoundException | SecurityException e) {
+            String exceptionMessage = "Problem with file \""
+                    + filename
+                    + "\" when trying to open it\n"
+                    + e.getMessage()
+                    + "\n"
+                    + "The program will now ignore it\n";
+            throw new Exception(exceptionMessage);
+        }
     }
 
     public void closeFile() throws IOException {
-        br.close();
-        fr = null; //no need to close fr as br is a wrapper around fr
+        try {
+            raf.close();
+        } catch (IOException e) {
+            String exceptionMessage = "Problem with file \""
+                    + filename
+                    + "\" when trying to close it\n"
+                    + e.getMessage()
+                    + "\n"
+                    + "The program will now ignore it\n";
+            throw new IOException(exceptionMessage);
+        }
+    }
+
+    public void moveToPosition() throws IOException {
+        try {
+            raf.seek(currentFilePointer);
+        } catch (IOException e) {
+            String exceptionMessage = "Problem with file \""
+                    + filename
+                    + "\" when trying to seek in it\n"
+                    + e.getMessage()
+                    + "\n"
+                    + "The program will now ignore it\n";
+            throw new IOException(exceptionMessage);
+        }
+    }
+
+    public void rememberPosition() throws IOException {
+        try {
+            currentFilePointer = raf.getFilePointer();
+        } catch (IOException e) {
+            String exceptionMessage = "Problem with file \""
+                    + filename
+                    + "\" when trying to get file pointer in it\n"
+                    + e.getMessage()
+                    + "\n"
+                    + "The program will now ignore it\n";
+            throw new IOException(exceptionMessage);
+        }
     }
 
     //0 if line was read without exceptions, 1 if EOF reached
