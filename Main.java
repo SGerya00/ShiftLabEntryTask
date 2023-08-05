@@ -1,4 +1,3 @@
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,9 +105,6 @@ public class Main {
             break;
         }
         if (1 == res) {
-            System.out.println("EOF reached in \""
-                    + fp.getFilename()
-                    + "\", file will now be ignored");
             try {
                 fp.closeFile();
             } catch (IOException e) {
@@ -139,6 +135,102 @@ public class Main {
         return 0;
     }
 
+    //0 if success
+    //1 if IOException
+    private static int openOutput(OutputWriter ow) {
+        try {
+            ow.openFileForWriting();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            return 1;
+        }
+        return 0;
+    }
+
+    //0 if success
+    //1 if IOException
+    private static int closeOutput(OutputWriter ow) {
+        try {
+            ow.closeFile();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            return 1;
+        }
+        return 0;
+    }
+
+    //0 if execution completed normally
+    //1 if execution completed due to an exception
+    private static int mainCycle(ExecutionParameters ep, OutputWriter ow) {
+        int sortCoef = (ep.isSortAscending() ? (1) : (-1));
+
+        FilePortionFactory fpf = new FilePortionFactory(ep.getDatatype());
+        List<FilePortion> filePortions = new ArrayList<>(); //array list is good as random access will be frequent
+
+        for (String filename : ep.getInputFileNames()) {
+            try {
+                filePortions.add(fpf.createFilePortion(filename, ep.isSortAscending()));
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+                return 1; //although no exception is expected to arise, catching it is good idea (just in case)
+            }
+        }
+
+        while(true) {
+            int greatestElementIndex = 0; //depending on sorting type, might either be biggest or smallest
+            int arrSize = filePortions.size();
+            for(int i = 0; i < arrSize; i++) {
+                int res = 0;
+                boolean hasData;
+                try {
+                    hasData = filePortions.get(i).hasData();
+                } catch(IndexOutOfBoundsException e) {
+                    System.err.println(e.getMessage());
+                    return 1; //this exception is not expected because of algorithm logic, but let's still catch it
+                }
+                if (!hasData) {
+                    try {
+                        res = readOneLineFromInputFile(filePortions.get(i));
+                    } catch (IndexOutOfBoundsException e) {
+                        System.err.println(e.getMessage());
+                        return 1; //this exception is not expected because of algorithm logic, but let's still catch it
+                    }
+                    if (1 == res) {
+                        try {
+                            filePortions.remove(i);
+                        } catch (Exception e) {
+                            System.err.println(e.getMessage());
+                            return 1; //again, no exceptions are supposed to arise, but let's still catch them
+                        }
+                        i -= 1;
+                        arrSize -= 1;
+                        continue;
+                    }
+                }
+                try {
+                    res = (filePortions.get(i).compareDataTo(filePortions.get(greatestElementIndex)) * sortCoef);
+                } catch (IndexOutOfBoundsException e) {
+                    System.err.println(e.getMessage());
+                    return 1; //this exception is not expected because of algorithm logic, but let's still catch it
+                }
+                if (res < 0) {
+                    greatestElementIndex = i;
+                }
+            }
+            arrSize = filePortions.size();
+            if (arrSize == 0) {
+                break; //all files have reached an end or had IOException that prevents further interaction with them
+            }
+            try {
+                filePortions.get(greatestElementIndex).writeToOutputFile(ow);
+            } catch (IndexOutOfBoundsException e) {
+                System.err.println(e.getMessage());
+                return 1; //this exception is not expected because of algorithm logic, but let's still catch it
+            }
+        }
+        return 0;
+    }
+
     public static void main(String[] args) {
         ExecutionParameters ep;
         try {
@@ -148,37 +240,13 @@ public class Main {
             return;
         }
 
-        System.out.println("all good in hood");
-
-        //--------------------------------------------------------------------------------------------------------------
         OutputWriter ow = new OutputWriter(ep.getOutputFileName());
-        try {
-            ow.openFileForWriting();
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
+        if (1 == openOutput(ow)) {
             return;
         }
 
-        FilePortionFactory fpf = new FilePortionFactory(ep.getDatatype());
-        FilePortion fp = fpf.createFilePortion(ep.getInputFileNames().get(0), ep.isSortAscending());
+        mainCycle(ep, ow);
 
-        while(true) {
-            int res = readOneLineFromInputFile(fp);
-            if (0 == res) {
-                fp.writeToOutputFile(ow);
-            } else {
-                System.out.println("File deleted from array");
-                break;
-            }
-        }
-
-        try {
-            ow.closeFile();
-        } catch (IOException ee) {
-            System.err.println(ee.getMessage());
-        }
-        //--------------------------------------------------------------------------------------------------------------
-
-        System.out.println("Execution complete!");
+        closeOutput(ow);
     }
 }

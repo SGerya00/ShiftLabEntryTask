@@ -30,6 +30,11 @@ public class FilePortionInt extends FilePortion {
         return this.lineData.compareTo(((FilePortionInt)that).getLineData());
     }
 
+    @Override
+    public boolean hasData() {
+        return (lineData != null);
+    }
+
     private int comparePrevDataTo(Integer newData) {
         if (null == previousLineData) {
             return (-1 * sortingModifier); //< 0 (newData > previousLineData)
@@ -38,7 +43,7 @@ public class FilePortionInt extends FilePortion {
     }
 
     @Override
-    public int readLineFromFile() throws RuntimeException, IOException {
+    public int readLineFromFile() throws FormatException, IOException {
         currentLineNum += 1;
         String currentLine;
         try {
@@ -54,14 +59,14 @@ public class FilePortionInt extends FilePortion {
         if (null == currentLine) {
             return 1;
         }
-        Integer fromLine = getIntFromLine(currentLine); //RuntimeException that may occur is propagated
+        Integer fromLine = getIntFromLine(currentLine); //FormatException that may occur is propagated
         if (0 < (this.comparePrevDataTo(fromLine) * sortingModifier)) {
             String exceptionMessage = "In file \""
                     + filename
                     + "\" in line "
                     + currentLineNum
                     + " an integer read was smaller than the last legitimate integer read, line will be ignored";
-            throw new RuntimeException(exceptionMessage);
+            throw new FormatException(exceptionMessage);
         }
         lineData = fromLine;
         return 0;
@@ -74,7 +79,7 @@ public class FilePortionInt extends FilePortion {
         lineData = null;
     }
 
-    private Integer getIntFromLine(String line) throws RuntimeException {
+    private Integer getIntFromLine(String line) throws FormatException {
         Integer res;
         try {
             res = Integer.parseInt(line);
@@ -85,7 +90,7 @@ public class FilePortionInt extends FilePortion {
                     + "\" in line "
                     + currentLineNum
                     + " an integer could not be read, line will be ignored.";
-            throw new RuntimeException(exceptionMessage);
+            throw new FormatException(exceptionMessage);
         }
         return res;
     }

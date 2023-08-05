@@ -30,6 +30,11 @@ public class FilePortionString extends FilePortion {
         return this.lineData.compareTo(((FilePortionString)that).getLineData());
     }
 
+    @Override
+    public boolean hasData() {
+        return (lineData != null);
+    }
+
     private int comparePrevDataTo(String newData) {
         if (null == previousLineData) {
             return (-1 * sortingModifier); //< 0 (newData > previousLineData)
@@ -38,7 +43,7 @@ public class FilePortionString extends FilePortion {
     }
 
     @Override
-    public int readLineFromFile() throws RuntimeException, IOException {
+    public int readLineFromFile() throws FormatException, IOException {
         currentLineNum += 1;
         String currentLine;
         try {
@@ -54,14 +59,14 @@ public class FilePortionString extends FilePortion {
         if (null == currentLine) {
             return 1;
         }
-        String fromLine = getStringFromLine(currentLine); //RuntimeException that may occur is propagated
+        String fromLine = getStringFromLine(currentLine); //FormatException that may occur is propagated
         if (0 < (this.comparePrevDataTo(fromLine) * sortingModifier)) {
             String exceptionMessage = "In file \""
                     + filename
                     + "\" in line "
                     + currentLineNum
                     + " a string read was smaller than the last legitimate string read, line will be ignored";
-            throw new RuntimeException(exceptionMessage);
+            throw new FormatException(exceptionMessage);
         }
         lineData = fromLine;
         return 0;
@@ -74,14 +79,14 @@ public class FilePortionString extends FilePortion {
         lineData = null;
     }
 
-    public String getStringFromLine(String line) throws RuntimeException {
+    public String getStringFromLine(String line) throws FormatException {
         if (line.contains(" ")) {
             String exceptionMessage = "In file \""
                     + filename
                     + "\" in line "
                     + currentLineNum
                     + " a \" \"(space) symbol present, line will be ignored.";
-            throw new RuntimeException(exceptionMessage);
+            throw new FormatException(exceptionMessage);
         }
         return line;
     }

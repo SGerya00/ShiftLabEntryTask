@@ -34,7 +34,13 @@ public abstract class FilePortion {
         this.currentLineNum = currentLineNum;
     }
 
+    //this < that returns <0
+    //this == that returns 0
+    //this > that returns >0
     abstract public int compareDataTo(FilePortion that);
+
+    //returns true if lineData (in children) is not null
+    abstract public boolean hasData();
 
     public void openFile() throws Exception {
         //will not throw IllegalArgumentException as mode is always "r" <- one of allowed
@@ -94,7 +100,7 @@ public abstract class FilePortion {
     }
 
     //0 if line was read without exceptions, 1 if EOF reached
-    abstract public int readLineFromFile() throws RuntimeException, IOException;
+    abstract public int readLineFromFile() throws FormatException, IOException;
 
     abstract public void writeToOutputFile(OutputWriter ow);
 }
